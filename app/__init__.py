@@ -17,7 +17,9 @@ def create_app():
 
 def init_db():
     """Initialize the SQLite database"""
-    if not os.path.exists('smart_home.db'):
+    try:
+        print("🔄 Initializing database...")
+        if not os.path.exists('smart_home.db'):
         conn = sqlite3.connect('smart_home.db')
         cursor = conn.cursor()
         
@@ -64,3 +66,7 @@ def init_db():
         
         conn.commit()
         conn.close()
+        print("✅ Database initialized successfully")
+    except Exception as e:
+        print(f"❌ Database initialization error: {e}")
+        raise e
