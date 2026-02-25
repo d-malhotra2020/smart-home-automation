@@ -9,21 +9,47 @@ def setup_routes(app, socketio):
     
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return """
+        <html>
+        <head><title>Smart Home Automation System</title></head>
+        <body>
+            <h1>🏠 Smart Home Automation System</h1>
+            <p>System Status: Online</p>
+            <p>API Endpoints:</p>
+            <ul>
+                <li><a href="/api/devices">/api/devices</a> - List all devices</li>
+                <li><a href="/api/rooms">/api/rooms</a> - List all rooms</li>
+                <li><a href="/api/energy">/api/energy</a> - Energy usage</li>
+            </ul>
+        </body>
+        </html>
+        """
+    
+    @app.route('/health')
+    def health():
+        return {"status": "healthy", "service": "Smart Home Automation"}
     
     @app.route('/api/devices')
     def get_devices():
-        devices = Device.get_all()
-        return jsonify([device.to_dict() for device in devices])
+        try:
+            devices = Device.get_all()
+            return jsonify([device.to_dict() for device in devices])
+        except Exception as e:
+            print(f"Error getting devices: {e}")
+            return jsonify({"error": "Database not available", "devices": []})
     
     @app.route('/api/rooms')
     def get_rooms():
-        rooms = Room.get_all()
-        room_data = []
-        for room in rooms:
-            summary = Room.get_room_summary(room)
-            room_data.append(summary)
-        return jsonify(room_data)
+        try:
+            rooms = Room.get_all()
+            room_data = []
+            for room in rooms:
+                summary = Room.get_room_summary(room)
+                room_data.append(summary)
+            return jsonify(room_data)
+        except Exception as e:
+            print(f"Error getting rooms: {e}")
+            return jsonify({"error": "Database not available", "rooms": []})
     
     @app.route('/api/devices/<int:device_id>/toggle', methods=['POST'])
     def toggle_device(device_id):
