@@ -20,7 +20,7 @@ def init_db():
     try:
         print("🔄 Initializing database...")
         if not os.path.exists('smart_home.db'):
-        conn = sqlite3.connect('smart_home.db')
+            conn = sqlite3.connect('smart_home.db')
         cursor = conn.cursor()
         
         # Create devices table
