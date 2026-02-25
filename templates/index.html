@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .room-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .room-title {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-transform: capitalize;
+        }
+        
+        .device {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .device-info {
+            flex: 1;
+        }
+        
+        .device-name {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .device-status {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .device-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .toggle-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.off {
+            background: #f44336;
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .slider {
+            width: 100px;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .energy-panel {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+        
+        .energy-title {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .energy-usage {
+            color: #4CAF50;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .energy-details {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-on { background: #4CAF50; }
+        .status-off { background: #f44336; }
+        .status-active { background: #2196F3; }
+        .status-motion { background: #FF9800; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .connected { background: #4CAF50; }
+        .disconnected { background: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <h1>🏠 Smart Home Control</h1>
+        
+        <div class="dashboard" id="dashboard">
+            <!-- Rooms will be populated by JavaScript -->
+        </div>
+        
+        <div class="energy-panel">
+            <div class="energy-title">⚡ Energy Usage</div>
+            <div class="energy-usage" id="energyUsage">0 W</div>
+            <div class="energy-details" id="energyDetails">
+                Daily: 0 kWh | Cost/hour: $0.00
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let devices = {};
+        let rooms = {};
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            updateConnectionStatus(true);
+            loadDevices();
+            loadEnergyData();
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            updateConnectionStatus(false);
+        });
+        
+        socket.on('initial_data', (data) => {
+            devices = {};
+            data.devices.forEach(device => {
+                devices[device.id] = device;
+            });
+            renderDashboard();
+        });
+        
+        socket.on('device_update', (device) => {
+            devices[device.id] = device;
+            renderDashboard();
+            loadEnergyData();
+        });
+        
+        socket.on('sensor_update', (data) => {
+            data.devices.forEach(device => {
+                devices[device.id] = device;
+            });
+            renderDashboard();
+        });
+        
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+            statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+        }
+        
+        function loadDevices() {
+            fetch('/api/devices')
+                .then(response => response.json())
+                .then(data => {
+                    devices = {};
+                    data.forEach(device => {
+                        devices[device.id] = device;
+                    });
+                    renderDashboard();
+                });
+        }
+        
+        function loadEnergyData() {
+            fetch('/api/energy')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('energyUsage').textContent = data.current_usage + ' W';
+                    document.getElementById('energyDetails').textContent = 
+                        `Daily: ${data.daily_estimate} kWh | Cost/hour: $${data.cost_per_hour}`;
+                });
+        }
+        
+        function renderDashboard() {
+            const dashboard = document.getElementById('dashboard');
+            rooms = {};
+            
+            // Group devices by room
+            Object.values(devices).forEach(device => {
+                if (!rooms[device.room]) {
+                    rooms[device.room] = [];
+                }
+                rooms[device.room].push(device);
+            });
+            
+            dashboard.innerHTML = '';
+            
+            Object.keys(rooms).forEach(roomName => {
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                
+                roomCard.innerHTML = `
+                    <div class="room-title">${roomName.replace('_', ' ')}</div>
+                    ${rooms[roomName].map(device => renderDevice(device)).join('')}
+                `;
+                
+                dashboard.appendChild(roomCard);
+            });
+        }
+        
+        function renderDevice(device) {
+            const statusClass = getStatusClass(device);
+            const controls = getDeviceControls(device);
+            
+            return `
+                <div class="device">
+                    <div class="device-info">
+                        <div class="device-name">
+                            <span class="status-indicator ${statusClass}"></span>
+                            ${device.name}
+                        </div>
+                        <div class="device-status">
+                            ${getDeviceStatusText(device)}
+                        </div>
+                    </div>
+                    <div class="device-controls">
+                        ${controls}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getStatusClass(device) {
+            if (device.type === 'light') {
+                return device.status === 'on' ? 'status-on' : 'status-off';
+            } else if (device.type === 'sensor') {
+                return device.status === 'motion_detected' ? 'status-motion' : 'status-active';
+            } else if (device.type === 'climate') {
+                return 'status-active';
+            }
+            return 'status-off';
+        }
+        
+        function getDeviceStatusText(device) {
+            if (device.type === 'light') {
+                return device.status === 'on' ? `On (${device.value}%)` : 'Off';
+            } else if (device.type === 'sensor') {
+                if (device.name.toLowerCase().includes('temperature')) {
+                    return `${device.value}°C`;
+                } else if (device.name.toLowerCase().includes('humidity')) {
+                    return `${device.value}%`;
+                } else if (device.name.toLowerCase().includes('motion')) {
+                    return device.status === 'motion_detected' ? 'Motion Detected!' : 'No Motion';
+                } else {
+                    return device.status === 'closed' ? 'Closed' : 'Open';
+                }
+            } else if (device.type === 'climate') {
+                return `${device.value}°C (${device.status})`;
+            }
+            return device.status;
+        }
+        
+        function getDeviceControls(device) {
+            if (device.type === 'light') {
+                return `
+                    <button class="toggle-btn ${device.status === 'off' ? 'off' : ''}" 
+                            onclick="toggleDevice(${device.id})">
+                        ${device.status === 'on' ? 'ON' : 'OFF'}
+                    </button>
+                    <input type="range" min="0" max="100" value="${device.value}" 
+                           class="slider" onchange="setBrightness(${device.id}, this.value)">
+                `;
+            } else if (device.type === 'climate') {
+                return `
+                    <input type="range" min="16" max="30" value="${device.value}" 
+                           class="slider" onchange="setTemperature(${device.id}, this.value)">
+                `;
+            }
+            return '';
+        }
+        
+        function toggleDevice(deviceId) {
+            socket.emit('device_control', {
+                device_id: deviceId,
+                action: 'toggle'
+            });
+        }
+        
+        function setBrightness(deviceId, brightness) {
+            socket.emit('device_control', {
+                device_id: deviceId,
+                action: 'brightness',
+                value: parseInt(brightness)
+            });
+        }
+        
+        function setTemperature(deviceId, temperature) {
+            socket.emit('device_control', {
+                device_id: deviceId,
+                action: 'temperature',
+                value: parseFloat(temperature)
+            });
+        }
+        
+        // Initial load
+        setTimeout(() => {
+            loadDevices();
+            loadEnergyData();
+        }, 1000);
+        
+        // Refresh energy data every 10 seconds
+        setInterval(loadEnergyData, 10000);
+    </script>
+</body>
+</html>
