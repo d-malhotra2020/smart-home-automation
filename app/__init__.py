@@ -19,9 +19,15 @@ def init_db():
     """Initialize the SQLite database"""
     try:
         print("🔄 Initializing database...")
-        if not os.path.exists('smart_home.db'):
-            conn = sqlite3.connect('smart_home.db')
+        conn = sqlite3.connect('smart_home.db')
         cursor = conn.cursor()
+        
+        # Check if tables already exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='devices'")
+        if cursor.fetchone():
+            print("✅ Database already initialized")
+            conn.close()
+            return
         
         # Create devices table
         cursor.execute('''
@@ -69,4 +75,5 @@ def init_db():
         print("✅ Database initialized successfully")
     except Exception as e:
         print(f"❌ Database initialization error: {e}")
-        raise e
+        print("⚠️  Continuing without database initialization...")
+        # Don't raise the exception - allow app to start without database
