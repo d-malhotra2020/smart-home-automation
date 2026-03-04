@@ -9,21 +9,7 @@ def setup_routes(app, socketio):
     
     @app.route('/')
     def index():
-        return """
-        <html>
-        <head><title>Smart Home Automation System</title></head>
-        <body>
-            <h1>🏠 Smart Home Automation System</h1>
-            <p>System Status: Online</p>
-            <p>API Endpoints:</p>
-            <ul>
-                <li><a href="/api/devices">/api/devices</a> - List all devices</li>
-                <li><a href="/api/rooms">/api/rooms</a> - List all rooms</li>
-                <li><a href="/api/energy">/api/energy</a> - Energy usage</li>
-            </ul>
-        </body>
-        </html>
-        """
+        return render_template('index.html')
     
     @app.route('/health')
     def health():
