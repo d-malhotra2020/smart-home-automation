@@ -4,11 +4,7 @@ import sqlite3
 import os
 
 def create_app():
-    # Set template folder to project root templates directory
-    import os
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    template_folder = os.path.join(project_root, 'templates')
-    app = Flask(__name__, template_folder=template_folder)
+    app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
     
     # Initialize SocketIO
