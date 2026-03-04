@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Home Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,59 +14,99 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #09090b;
+            color: #f4f4f5;
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
+            line-height: 1.6;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
         }
         
         h1 {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            color: #f4f4f5;
+            margin-bottom: 12px;
             font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #71717a;
+            font-size: 1.125rem;
+            font-weight: 500;
         }
         
         .dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
         }
         
         .room-card {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+        
+        .room-card:hover {
+            border-color: #3f3f46;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
         
         .room-title {
-            color: white;
-            font-size: 1.3rem;
-            margin-bottom: 15px;
+            color: #f4f4f5;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
             text-transform: capitalize;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .room-icon {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
         }
         
         .device {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s ease;
+        }
+        
+        .device:hover {
+            background: #2e2e32;
+            border-color: #52525b;
         }
         
         .device-info {
@@ -73,14 +114,16 @@
         }
         
         .device-name {
-            color: white;
-            font-weight: bold;
-            margin-bottom: 5px;
+            color: #f4f4f5;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
         }
         
         .device-status {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
+            color: #a1a1aa;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
         
         .device-controls {
@@ -90,115 +133,185 @@
         }
         
         .toggle-btn {
-            background: #4CAF50;
+            background: #10b981;
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 20px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.875rem;
+            min-width: 60px;
         }
         
         .toggle-btn.off {
-            background: #f44336;
+            background: #ef4444;
         }
         
         .toggle-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .toggle-btn.off:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
         
         .slider {
-            width: 100px;
-            height: 5px;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.3);
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: #3f3f46;
             outline: none;
             -webkit-appearance: none;
+            cursor: pointer;
         }
         
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 15px;
-            height: 15px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: white;
+            background: #3b82f6;
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            background: #2563eb;
+            transform: scale(1.1);
         }
         
         .energy-panel {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 32px;
             text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .energy-panel:hover {
+            border-color: #475569;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
         
         .energy-title {
-            color: white;
-            font-size: 1.3rem;
-            margin-bottom: 15px;
+            color: #f1f5f9;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .energy-usage {
-            color: #4CAF50;
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+            color: #10b981;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .energy-details {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
         
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
             margin-right: 8px;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
         
-        .status-on { background: #4CAF50; }
-        .status-off { background: #f44336; }
-        .status-active { background: #2196F3; }
-        .status-motion { background: #FF9800; animation: pulse 1s infinite; }
+        .status-on { 
+            background: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .status-off { 
+            background: #6b7280;
+            box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+        }
+        .status-active { 
+            background: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .status-motion { 
+            background: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+            animation: pulse 2s infinite;
+        }
         
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { 
+                opacity: 1;
+                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 0 0 4px rgba(245, 158, 11, 0.1);
+            }
+            50% { 
+                opacity: 0.8;
+                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5), 0 0 0 8px rgba(245, 158, 11, 0.05);
+            }
+            100% { 
+                opacity: 1;
+                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 0 0 4px rgba(245, 158, 11, 0.1);
+            }
         }
         
         .connection-status {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 20px;
+            top: 24px;
+            right: 24px;
+            padding: 8px 16px;
+            border-radius: 8px;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 0.875rem;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid;
         }
         
-        .connected { background: #4CAF50; }
-        .disconnected { background: #f44336; }
+        .connected { 
+            background: rgba(16, 185, 129, 0.9);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .disconnected { 
+            background: rgba(239, 68, 68, 0.9);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body>
     <div class="connection-status" id="connectionStatus">Connecting...</div>
     
     <div class="container">
-        <h1>🏠 Smart Home Control</h1>
+        <div class="header">
+            <h1>🏠 Smart Home Control</h1>
+            <p class="subtitle">Manage your connected devices and monitor energy usage</p>
+        </div>
         
         <div class="dashboard" id="dashboard">
             <!-- Rooms will be populated by JavaScript -->
         </div>
         
         <div class="energy-panel">
-            <div class="energy-title">⚡ Energy Usage</div>
+            <div class="energy-title">
+                <span>⚡</span>
+                Energy Usage
+            </div>
             <div class="energy-usage" id="energyUsage">0 W</div>
             <div class="energy-details" id="energyDetails">
                 Daily: 0 kWh | Cost/hour: $0.00
@@ -290,8 +403,12 @@
                 const roomCard = document.createElement('div');
                 roomCard.className = 'room-card';
                 
+                const roomIcon = getRoomIcon(roomName);
                 roomCard.innerHTML = `
-                    <div class="room-title">${roomName.replace('_', ' ')}</div>
+                    <div class="room-title">
+                        <div class="room-icon">${roomIcon}</div>
+                        ${roomName.replace('_', ' ')}
+                    </div>
                     ${rooms[roomName].map(device => renderDevice(device)).join('')}
                 `;
                 
@@ -393,7 +510,28 @@
             });
         }
         
+        function getRoomIcon(roomName) {
+            const icons = {
+                'living_room': '🛋️',
+                'bedroom': '🛏️',
+                'kitchen': '🍳',
+                'bathroom': '🚿',
+                'entrance': '🚪',
+                'garage': '🚗',
+                'office': '💼',
+                'garden': '🌱'
+            };
+            return icons[roomName] || '🏠';
+        }
+        
+        // Add smooth loading animation
+        function showLoadingState() {
+            const dashboard = document.getElementById('dashboard');
+            dashboard.innerHTML = '<div style="text-align: center; padding: 40px; color: #71717a;">Loading devices...</div>';
+        }
+        
         // Initial load
+        showLoadingState();
         setTimeout(() => {
             loadDevices();
             loadEnergyData();
