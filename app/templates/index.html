@@ -1,544 +1,659 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Control</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: #09090b;
-            color: #f4f4f5;
-            min-height: 100vh;
-            padding: 24px;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-        
-        h1 {
-            color: #f4f4f5;
-            margin-bottom: 12px;
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .subtitle {
-            color: #71717a;
-            font-size: 1.125rem;
-            font-weight: 500;
-        }
-        
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 24px;
-            margin-bottom: 48px;
-        }
-        
-        .room-card {
-            background: #18181b;
-            border: 1px solid #27272a;
-            border-radius: 16px;
-            padding: 24px;
-            transition: all 0.2s ease;
-        }
-        
-        .room-card:hover {
-            border-color: #3f3f46;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        .room-title {
-            color: #f4f4f5;
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            text-transform: capitalize;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .room-icon {
-            width: 20px;
-            height: 20px;
-            background: #3b82f6;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-        
-        .device {
-            background: #27272a;
-            border: 1px solid #3f3f46;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-        }
-        
-        .device:hover {
-            background: #2e2e32;
-            border-color: #52525b;
-        }
-        
-        .device-info {
-            flex: 1;
-        }
-        
-        .device-name {
-            color: #f4f4f5;
-            font-weight: 600;
-            margin-bottom: 4px;
-            font-size: 0.95rem;
-        }
-        
-        .device-status {
-            color: #a1a1aa;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .device-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .toggle-btn {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            font-size: 0.875rem;
-            min-width: 60px;
-        }
-        
-        .toggle-btn.off {
-            background: #ef4444;
-        }
-        
-        .toggle-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-        
-        .toggle-btn.off:hover {
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-        
-        .slider {
-            width: 120px;
-            height: 6px;
-            border-radius: 3px;
-            background: #3f3f46;
-            outline: none;
-            -webkit-appearance: none;
-            cursor: pointer;
-        }
-        
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: all 0.2s ease;
-        }
-        
-        .slider::-webkit-slider-thumb:hover {
-            background: #2563eb;
-            transform: scale(1.1);
-        }
-        
-        .energy-panel {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 32px;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-        
-        .energy-panel:hover {
-            border-color: #475569;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        .energy-title {
-            color: #f1f5f9;
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .energy-usage {
-            color: #10b981;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .energy-details {
-            color: #94a3b8;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-        
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-        
-        .status-on { 
-            background: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-        }
-        .status-off { 
-            background: #6b7280;
-            box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
-        }
-        .status-active { 
-            background: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-        .status-motion { 
-            background: #f59e0b;
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { 
-                opacity: 1;
-                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 0 0 4px rgba(245, 158, 11, 0.1);
-            }
-            50% { 
-                opacity: 0.8;
-                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5), 0 0 0 8px rgba(245, 158, 11, 0.05);
-            }
-            100% { 
-                opacity: 1;
-                box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 0 0 4px rgba(245, 158, 11, 0.1);
-            }
-        }
-        
-        .connection-status {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            padding: 8px 16px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.875rem;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-            border: 1px solid;
-        }
-        
-        .connected { 
-            background: rgba(16, 185, 129, 0.9);
-            border-color: rgba(16, 185, 129, 0.3);
-        }
-        .disconnected { 
-            background: rgba(239, 68, 68, 0.9);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smart-home · operator console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+  <style>
+    :root {
+      --bg-deep: #0a0a0c;
+      --surface: #111114;
+      --surface-hi: #16161a;
+      --surface-hover: #1a1a1f;
+      --hairline: #1f1f23;
+      --hairline-hi: #2a2a2f;
+      --text-primary: #e5e5e7;
+      --text-secondary: #8a8a92;
+      --text-mute: #555560;
+      --green: #22c55e;
+      --green-dim: #15803d;
+      --red: #ef4444;
+      --red-dim: #991b1b;
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius: 2px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    code, .mono, .meta-value, .meta-label, .device-readout, .room-label, .footer-label {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* ============ TOP STATUS BAR ============ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--hairline);
+      padding: var(--space-3) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .brand-mark {
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .brand-name {
+      color: var(--text-primary);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-tag {
+      color: var(--text-mute);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .meta-label {
+      color: var(--text-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 10px;
+    }
+
+    .meta-value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .meta-sep {
+      color: var(--hairline-hi);
+    }
+
+    /* ============ PIP INDICATORS ============ */
+    .pip {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-mute);
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+
+    .pip[data-state="on"], .pip[data-state="live"], .pip[data-state="connected"] {
+      background: var(--green);
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+      animation: pulse-green 2s ease-in-out infinite;
+    }
+
+    .pip[data-state="off"] {
+      background: var(--text-mute);
+    }
+
+    .pip[data-state="alert"], .pip[data-state="disconnected"] {
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+    }
+
+    .pip[data-state="motion"], .pip[data-state="warn"] {
+      background: var(--amber);
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+      animation: pulse-amber 1.2s ease-in-out infinite;
+    }
+
+    .pip[data-state="active"], .pip[data-state="auto"], .pip[data-state="cooling"], .pip[data-state="heating"] {
+      background: var(--blue);
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    @keyframes pulse-amber {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ============ MAIN LAYOUT ============ */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+    }
+
+    .room-group {
+      margin-bottom: var(--space-6);
+    }
+
+    .room-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: var(--space-2) 0;
+      margin-bottom: var(--space-2);
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .room-label {
+      color: var(--text-secondary);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 500;
+    }
+
+    .room-meta {
+      color: var(--text-mute);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ============ DEVICE ROWS ============ */
+    .device-row {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1.4fr) auto;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-3) var(--space-3);
+      border-bottom: 1px solid var(--hairline);
+      transition: background-color 120ms ease;
+    }
+
+    .device-row:hover {
+      background: var(--surface-hi);
+    }
+
+    .device-row:last-child {
+      border-bottom: none;
+    }
+
+    .device-name {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .device-readout {
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .device-readout .accent-on { color: var(--green); }
+    .device-readout .accent-off { color: var(--text-mute); }
+    .device-readout .accent-alert { color: var(--amber); }
+
+    .device-control {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      justify-content: flex-end;
+    }
+
+    /* ============ CONTROLS ============ */
+    .toggle {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--hairline-hi);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      min-width: 48px;
+      transition: all 120ms ease;
+    }
+
+    .toggle[data-state="on"] {
+      color: var(--green);
+      border-color: var(--green-dim);
+      background: rgba(34, 197, 94, 0.06);
+    }
+
+    .toggle[data-state="off"] {
+      color: var(--text-mute);
+    }
+
+    .toggle:hover {
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+
+    .toggle[data-state="on"]:hover {
+      border-color: var(--green);
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100px;
+      height: 2px;
+      background: var(--hairline-hi);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--text-primary);
+      border: 1px solid var(--bg-deep);
+      cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--text-primary);
+      border: 1px solid var(--bg-deep);
+      cursor: pointer;
+      border-radius: 0;
+    }
+
+    /* ============ HONESTY FOOTER ============ */
+    .reality-card {
+      margin-top: var(--space-6);
+      padding: var(--space-4) var(--space-5);
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-left: 2px solid var(--amber);
+    }
+
+    .footer-label {
+      display: block;
+      color: var(--amber);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: var(--space-2);
+    }
+
+    .reality-card p {
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .reality-card p + p {
+      margin-top: var(--space-2);
+    }
+
+    .reality-card strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* ============ LOADING / EMPTY ============ */
+    .empty {
+      padding: var(--space-6);
+      color: var(--text-mute);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 720px) {
+      .topbar {
+        padding: var(--space-3) var(--space-4);
+        gap: var(--space-3);
+      }
+      .status-meta {
+        gap: var(--space-3);
+        font-size: 10px;
+      }
+      .meta-sep { display: none; }
+      main {
+        padding: var(--space-5) var(--space-3);
+      }
+      .device-row {
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-2);
+      }
+      .device-readout {
+        grid-column: 2 / 4;
+        font-size: 11px;
+        margin-top: -4px;
+      }
+      .device-control {
+        grid-column: 1 / 4;
+        justify-content: flex-end;
+        margin-top: var(--space-1);
+      }
+      .slider { width: 80px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="connection-status" id="connectionStatus">Connecting...</div>
-    
-    <div class="container">
-        <div class="header">
-            <h1>🏠 Smart Home Control</h1>
-            <p class="subtitle">Manage your connected devices and monitor energy usage</p>
-        </div>
-        
-        <div class="dashboard" id="dashboard">
-            <!-- Rooms will be populated by JavaScript -->
-        </div>
-        
-        <div class="energy-panel">
-            <div class="energy-title">
-                <span>⚡</span>
-                Energy Usage
-            </div>
-            <div class="energy-usage" id="energyUsage">0 W</div>
-            <div class="energy-details" id="energyDetails">
-                Daily: 0 kWh | Cost/hour: $0.00
-            </div>
-        </div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">[⎈]</span>
+      <span class="brand-name">smart-home</span>
+      <span class="brand-tag">// operator console</span>
+    </div>
+    <div class="status-meta">
+      <span class="meta-item">
+        <span class="pip" id="brokerPip" data-state="off"></span>
+        <span class="meta-label">broker</span>
+        <span class="meta-value" id="brokerStatus">offline · sim</span>
+      </span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">
+        <span class="meta-value" id="deviceCount">0</span>
+        <span class="meta-label">devices</span>
+      </span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">
+        <span class="meta-value" id="energyValue">0.00</span>
+        <span class="meta-label">kW</span>
+      </span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">
+        <span class="meta-label">NY</span>
+        <span class="meta-value" id="clock">--:--</span>
+      </span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">
+        <span class="pip" id="connPip" data-state="off"></span>
+        <span class="meta-label" id="connText">connecting</span>
+      </span>
+    </div>
+  </header>
+
+  <main>
+    <div id="rooms" class="rooms">
+      <div class="empty">// loading device state…</div>
     </div>
 
-    <script>
-        const socket = io();
-        let devices = {};
-        let rooms = {};
-        
-        socket.on('connect', () => {
-            console.log('Connected to server');
-            updateConnectionStatus(true);
-            loadDevices();
-            loadEnergyData();
+    <section class="reality-card" aria-label="system reality">
+      <span class="footer-label">// system reality</span>
+      <p>All device state below is <strong>simulated</strong>. No physical hardware is connected; sensor values are generated by a server-side loop. Toggles and sliders mutate in-memory + SQLite state and broadcast over WebSocket — they do not control real fixtures.</p>
+      <p>The local <strong>Mosquitto MQTT broker</strong> referenced in the project narrative is <strong>not yet wired</strong>. Broker indicator above will flip to <code class="mono" style="color:var(--green)">live</code> once <code class="mono">paho-mqtt</code> is connected to a real broker sidecar.</p>
+    </section>
+  </main>
+
+  <script>
+    const socket = io();
+    const state = { devices: {} };
+
+    const roomLabel = (key) => key.replace(/_/g, ' ');
+
+    const fmtNum = (n, digits = 2) => {
+      if (n === null || n === undefined || Number.isNaN(n)) return '--';
+      return Number(n).toFixed(digits);
+    };
+
+    // ============ CONNECTION + INITIAL LOAD ============
+    socket.on('connect', () => {
+      setConn(true);
+      loadDevices();
+      loadEnergy();
+    });
+
+    socket.on('disconnect', () => setConn(false));
+
+    socket.on('initial_data', (data) => {
+      replaceDevices(data.devices || []);
+    });
+
+    socket.on('device_update', (device) => {
+      state.devices[device.id] = device;
+      render();
+      loadEnergy();
+    });
+
+    socket.on('sensor_update', (data) => {
+      (data.devices || []).forEach(d => { state.devices[d.id] = d; });
+      render();
+    });
+
+    function setConn(connected) {
+      const pip = document.getElementById('connPip');
+      const text = document.getElementById('connText');
+      pip.dataset.state = connected ? 'connected' : 'disconnected';
+      text.textContent = connected ? 'connected' : 'disconnected';
+    }
+
+    function loadDevices() {
+      fetch('/api/devices')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) replaceDevices(data);
+        })
+        .catch(() => {});
+    }
+
+    function loadEnergy() {
+      fetch('/api/energy')
+        .then(r => r.json())
+        .then(data => {
+          // /api/energy returns watts in current_usage
+          const kW = (data.current_usage || 0) / 1000;
+          document.getElementById('energyValue').textContent = fmtNum(kW, 2);
+        })
+        .catch(() => {});
+    }
+
+    function replaceDevices(list) {
+      state.devices = {};
+      list.forEach(d => { state.devices[d.id] = d; });
+      render();
+    }
+
+    // ============ RENDER ============
+    function render() {
+      const root = document.getElementById('rooms');
+      const devices = Object.values(state.devices);
+
+      document.getElementById('deviceCount').textContent = devices.length;
+
+      if (devices.length === 0) {
+        root.innerHTML = '<div class="empty">// no devices registered</div>';
+        return;
+      }
+
+      // Group by room, preserving insertion order
+      const grouped = {};
+      devices.forEach(d => {
+        if (!grouped[d.room]) grouped[d.room] = [];
+        grouped[d.room].push(d);
+      });
+
+      root.innerHTML = Object.keys(grouped).map(room => {
+        const rows = grouped[room];
+        const onCount = rows.filter(d => d.status === 'on').length;
+        const lightCount = rows.filter(d => d.type === 'light').length;
+        const metaParts = [`${rows.length} devices`];
+        if (lightCount > 0) metaParts.push(`${onCount}/${lightCount} on`);
+
+        return `
+          <section class="room-group">
+            <header class="room-header">
+              <span class="room-label">// ${roomLabel(room)}</span>
+              <span class="room-meta">${metaParts.join(' · ')}</span>
+            </header>
+            <div class="device-rows">
+              ${rows.map(renderRow).join('')}
+            </div>
+          </section>
+        `;
+      }).join('');
+    }
+
+    function renderRow(d) {
+      const pipState = getPipState(d);
+      const readout = getReadout(d);
+      const control = getControl(d);
+      return `
+        <div class="device-row" data-type="${d.type}" data-id="${d.id}">
+          <span class="pip" data-state="${pipState}"></span>
+          <span class="device-name">${escapeHtml(d.name)}</span>
+          <span class="device-readout">${readout}</span>
+          <div class="device-control">${control}</div>
+        </div>
+      `;
+    }
+
+    function getPipState(d) {
+      if (d.type === 'light') return d.status === 'on' ? 'on' : 'off';
+      if (d.type === 'sensor') {
+        if (d.status === 'motion_detected') return 'motion';
+        if (d.status === 'closed') return 'off';
+        return 'active';
+      }
+      if (d.type === 'climate') return d.status;
+      return 'off';
+    }
+
+    function getReadout(d) {
+      if (d.type === 'light') {
+        return d.status === 'on'
+          ? `<span class="accent-on">on</span> · ${d.value}%`
+          : `<span class="accent-off">off</span>`;
+      }
+      if (d.type === 'sensor') {
+        const name = (d.name || '').toLowerCase();
+        if (name.includes('temperature')) return `${fmtNum(d.value, 1)} °C`;
+        if (name.includes('humidity')) return `${fmtNum(d.value, 1)} %`;
+        if (name.includes('motion')) {
+          return d.status === 'motion_detected'
+            ? `<span class="accent-alert">motion detected</span>`
+            : `<span class="accent-off">clear</span>`;
+        }
+        return `<span class="accent-off">${escapeHtml(d.status)}</span>`;
+      }
+      if (d.type === 'climate') {
+        return `${fmtNum(d.value, 1)} °C · ${escapeHtml(d.status)}`;
+      }
+      return escapeHtml(d.status);
+    }
+
+    function getControl(d) {
+      if (d.type === 'light') {
+        const isOn = d.status === 'on';
+        return `
+          <button class="toggle" data-state="${isOn ? 'on' : 'off'}" onclick="toggleDevice(${d.id})">
+            ${isOn ? 'ON' : 'OFF'}
+          </button>
+          <input type="range" min="0" max="100" value="${d.value}" class="slider"
+                 oninput="setBrightness(${d.id}, this.value)"
+                 aria-label="${escapeAttr(d.name)} brightness" />
+        `;
+      }
+      if (d.type === 'climate') {
+        return `
+          <input type="range" min="16" max="30" value="${d.value}" class="slider"
+                 oninput="setTemperature(${d.id}, this.value)"
+                 aria-label="${escapeAttr(d.name)} target temperature" />
+        `;
+      }
+      return '';
+    }
+
+    // ============ CONTROLS ============
+    function toggleDevice(id) {
+      socket.emit('device_control', { device_id: id, action: 'toggle' });
+    }
+
+    function setBrightness(id, value) {
+      socket.emit('device_control', { device_id: id, action: 'brightness', value: parseInt(value, 10) });
+    }
+
+    function setTemperature(id, value) {
+      socket.emit('device_control', { device_id: id, action: 'temperature', value: parseFloat(value) });
+    }
+
+    // ============ UTIL ============
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    // ============ CLOCK (NY time) ============
+    function updateClock() {
+      try {
+        const t = new Date().toLocaleTimeString('en-US', {
+          timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false
         });
-        
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-            updateConnectionStatus(false);
-        });
-        
-        socket.on('initial_data', (data) => {
-            devices = {};
-            data.devices.forEach(device => {
-                devices[device.id] = device;
-            });
-            renderDashboard();
-        });
-        
-        socket.on('device_update', (device) => {
-            devices[device.id] = device;
-            renderDashboard();
-            loadEnergyData();
-        });
-        
-        socket.on('sensor_update', (data) => {
-            data.devices.forEach(device => {
-                devices[device.id] = device;
-            });
-            renderDashboard();
-        });
-        
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connectionStatus');
-            statusEl.textContent = connected ? 'Connected' : 'Disconnected';
-            statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
-        }
-        
-        function loadDevices() {
-            fetch('/api/devices')
-                .then(response => response.json())
-                .then(data => {
-                    devices = {};
-                    data.forEach(device => {
-                        devices[device.id] = device;
-                    });
-                    renderDashboard();
-                });
-        }
-        
-        function loadEnergyData() {
-            fetch('/api/energy')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('energyUsage').textContent = data.current_usage + ' W';
-                    document.getElementById('energyDetails').textContent = 
-                        `Daily: ${data.daily_estimate} kWh | Cost/hour: $${data.cost_per_hour}`;
-                });
-        }
-        
-        function renderDashboard() {
-            const dashboard = document.getElementById('dashboard');
-            rooms = {};
-            
-            // Group devices by room
-            Object.values(devices).forEach(device => {
-                if (!rooms[device.room]) {
-                    rooms[device.room] = [];
-                }
-                rooms[device.room].push(device);
-            });
-            
-            dashboard.innerHTML = '';
-            
-            Object.keys(rooms).forEach(roomName => {
-                const roomCard = document.createElement('div');
-                roomCard.className = 'room-card';
-                
-                const roomIcon = getRoomIcon(roomName);
-                roomCard.innerHTML = `
-                    <div class="room-title">
-                        <div class="room-icon">${roomIcon}</div>
-                        ${roomName.replace('_', ' ')}
-                    </div>
-                    ${rooms[roomName].map(device => renderDevice(device)).join('')}
-                `;
-                
-                dashboard.appendChild(roomCard);
-            });
-        }
-        
-        function renderDevice(device) {
-            const statusClass = getStatusClass(device);
-            const controls = getDeviceControls(device);
-            
-            return `
-                <div class="device">
-                    <div class="device-info">
-                        <div class="device-name">
-                            <span class="status-indicator ${statusClass}"></span>
-                            ${device.name}
-                        </div>
-                        <div class="device-status">
-                            ${getDeviceStatusText(device)}
-                        </div>
-                    </div>
-                    <div class="device-controls">
-                        ${controls}
-                    </div>
-                </div>
-            `;
-        }
-        
-        function getStatusClass(device) {
-            if (device.type === 'light') {
-                return device.status === 'on' ? 'status-on' : 'status-off';
-            } else if (device.type === 'sensor') {
-                return device.status === 'motion_detected' ? 'status-motion' : 'status-active';
-            } else if (device.type === 'climate') {
-                return 'status-active';
-            }
-            return 'status-off';
-        }
-        
-        function getDeviceStatusText(device) {
-            if (device.type === 'light') {
-                return device.status === 'on' ? `On (${device.value}%)` : 'Off';
-            } else if (device.type === 'sensor') {
-                if (device.name.toLowerCase().includes('temperature')) {
-                    return `${device.value}°C`;
-                } else if (device.name.toLowerCase().includes('humidity')) {
-                    return `${device.value}%`;
-                } else if (device.name.toLowerCase().includes('motion')) {
-                    return device.status === 'motion_detected' ? 'Motion Detected!' : 'No Motion';
-                } else {
-                    return device.status === 'closed' ? 'Closed' : 'Open';
-                }
-            } else if (device.type === 'climate') {
-                return `${device.value}°C (${device.status})`;
-            }
-            return device.status;
-        }
-        
-        function getDeviceControls(device) {
-            if (device.type === 'light') {
-                return `
-                    <button class="toggle-btn ${device.status === 'off' ? 'off' : ''}" 
-                            onclick="toggleDevice(${device.id})">
-                        ${device.status === 'on' ? 'ON' : 'OFF'}
-                    </button>
-                    <input type="range" min="0" max="100" value="${device.value}" 
-                           class="slider" onchange="setBrightness(${device.id}, this.value)">
-                `;
-            } else if (device.type === 'climate') {
-                return `
-                    <input type="range" min="16" max="30" value="${device.value}" 
-                           class="slider" onchange="setTemperature(${device.id}, this.value)">
-                `;
-            }
-            return '';
-        }
-        
-        function toggleDevice(deviceId) {
-            socket.emit('device_control', {
-                device_id: deviceId,
-                action: 'toggle'
-            });
-        }
-        
-        function setBrightness(deviceId, brightness) {
-            socket.emit('device_control', {
-                device_id: deviceId,
-                action: 'brightness',
-                value: parseInt(brightness)
-            });
-        }
-        
-        function setTemperature(deviceId, temperature) {
-            socket.emit('device_control', {
-                device_id: deviceId,
-                action: 'temperature',
-                value: parseFloat(temperature)
-            });
-        }
-        
-        function getRoomIcon(roomName) {
-            const icons = {
-                'living_room': '🛋️',
-                'bedroom': '🛏️',
-                'kitchen': '🍳',
-                'bathroom': '🚿',
-                'entrance': '🚪',
-                'garage': '🚗',
-                'office': '💼',
-                'garden': '🌱'
-            };
-            return icons[roomName] || '🏠';
-        }
-        
-        // Add smooth loading animation
-        function showLoadingState() {
-            const dashboard = document.getElementById('dashboard');
-            dashboard.innerHTML = '<div style="text-align: center; padding: 40px; color: #71717a;">Loading devices...</div>';
-        }
-        
-        // Initial load
-        showLoadingState();
-        setTimeout(() => {
-            loadDevices();
-            loadEnergyData();
-        }, 1000);
-        
-        // Refresh energy data every 10 seconds
-        setInterval(loadEnergyData, 10000);
-    </script>
+        document.getElementById('clock').textContent = t;
+      } catch {
+        document.getElementById('clock').textContent = '--:--';
+      }
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    // Energy refresh fallback (in case WS lags)
+    setInterval(loadEnergy, 15000);
+  </script>
 </body>
 </html>

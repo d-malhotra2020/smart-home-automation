@@ -135,15 +135,6 @@ class DeviceController:
         
         return round(total_usage, 2)
     
-    def get_room_automation_rules(self):
-        """Get current automation rules"""
-        return {
-            'motion_lighting': True,
-            'temperature_control': True,
-            'security_monitoring': True,
-            'energy_saving': True
-        }
-    
     def apply_motion_lighting(self, room):
         """Apply motion-activated lighting"""
         lights = [d for d in Device.get_by_room(room) if d.type == 'light']

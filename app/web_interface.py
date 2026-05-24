@@ -71,12 +71,7 @@ def setup_routes(app, socketio):
             'monthly_estimate': round(usage * 24 * 30, 2),
             'cost_per_hour': round(usage * 0.12, 2)  # $0.12 per kWh
         })
-    
-    @app.route('/api/automation')
-    def get_automation_rules():
-        rules = controller.get_room_automation_rules()
-        return jsonify(rules)
-    
+
     @socketio.on('connect')
     def handle_connect():
         print(f'Client connected: {request.sid}')
