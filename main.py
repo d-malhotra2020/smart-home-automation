@@ -12,12 +12,12 @@ from app.web_interface import setup_routes
 def main():
     """Main application function"""
     print("🏠 Starting Smart Home Automation System...")
-    
-    # Create Flask app and SocketIO
-    app, socketio = create_app()
-    
-    # Setup routes and device controller
-    controller = setup_routes(app, socketio)
+
+    # Create Flask app, SocketIO, and MQTT client
+    app, socketio, mqtt_client = create_app()
+
+    # Setup routes and device controller (also starts MQTT if configured)
+    controller = setup_routes(app, socketio, mqtt_client=mqtt_client)
     
     print("✅ System initialized successfully!")
     print("📱 Web interface available at: http://localhost:5000")
@@ -44,6 +44,8 @@ def main():
     except KeyboardInterrupt:
         print("\n🛑 Shutting down Smart Home System...")
         controller.stop_sensor_simulation()
+        if mqtt_client is not None:
+            mqtt_client.stop()
         print("✅ System shutdown complete.")
     except Exception as e:
         print(f"❌ Error starting system: {e}")

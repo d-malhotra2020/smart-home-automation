@@ -5,10 +5,32 @@ from datetime import datetime
 from .models import Device
 
 class DeviceController:
-    def __init__(self, socketio=None):
+    def __init__(self, socketio=None, mqtt_client=None):
         self.socketio = socketio
+        self.mqtt_client = mqtt_client
         self.running = False
         self.sensor_thread = None
+
+    def _broadcast(self, device, event="device_update"):
+        """Single fan-out point: WebSocket to browsers + MQTT to broker."""
+        if self.socketio:
+            self.socketio.emit(event, device.to_dict())
+        if self.mqtt_client:
+            self.mqtt_client.publish_device_state(device)
+
+    def handle_mqtt_command(self, device_id, payload):
+        """Route incoming MQTT command to the right handler.
+
+        Payload shape: {"action": "toggle"|"brightness"|"temperature", "value": <num>}
+        """
+        action = (payload or {}).get("action")
+        value = (payload or {}).get("value")
+        if action == "toggle":
+            self.toggle_light(device_id)
+        elif action == "brightness" and value is not None:
+            self.set_light_brightness(device_id, int(value))
+        elif action == "temperature" and value is not None:
+            self.set_temperature(device_id, float(value))
     
     def start_sensor_simulation(self):
         """Start simulating sensor readings"""
@@ -62,21 +84,23 @@ class DeviceController:
                         # Auto-reset after 3 seconds
                         threading.Timer(3.0, lambda: self._reset_motion_sensor(device.id)).start()
         
-        # Emit updates to web interface
+        # Emit updates to web interface (and MQTT, per device)
         if self.socketio and updated_devices:
             self.socketio.emit('sensor_update', {
                 'devices': [device.to_dict() for device in updated_devices],
                 'timestamp': datetime.now().isoformat()
             })
-    
+        if self.mqtt_client and updated_devices:
+            for device in updated_devices:
+                self.mqtt_client.publish_device_state(device)
+
     def _reset_motion_sensor(self, device_id):
         """Reset motion sensor to active state"""
         device = Device.get_by_id(device_id)
         if device:
             device.update_status('active', 0)
-            if self.socketio:
-                self.socketio.emit('device_update', device.to_dict())
-    
+            self._broadcast(device)
+
     def toggle_light(self, device_id):
         """Toggle light on/off"""
         device = Device.get_by_id(device_id)
@@ -84,38 +108,26 @@ class DeviceController:
             new_status = 'off' if device.status == 'on' else 'on'
             brightness = 100 if new_status == 'on' else 0
             device.update_status(new_status, brightness)
-            
-            # Emit update
-            if self.socketio:
-                self.socketio.emit('device_update', device.to_dict())
-            
+            self._broadcast(device)
             return device
         return None
-    
+
     def set_light_brightness(self, device_id, brightness):
         """Set light brightness (0-100)"""
         device = Device.get_by_id(device_id)
         if device and device.type == 'light':
             status = 'on' if brightness > 0 else 'off'
             device.update_status(status, brightness)
-            
-            # Emit update
-            if self.socketio:
-                self.socketio.emit('device_update', device.to_dict())
-            
+            self._broadcast(device)
             return device
         return None
-    
+
     def set_temperature(self, device_id, temperature):
         """Set thermostat temperature"""
         device = Device.get_by_id(device_id)
         if device and device.type == 'climate':
             device.update_status('heating' if temperature > device.value else 'cooling', temperature)
-            
-            # Emit update
-            if self.socketio:
-                self.socketio.emit('device_update', device.to_dict())
-            
+            self._broadcast(device)
             return device
         return None
     

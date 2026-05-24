@@ -3,17 +3,25 @@ from flask_socketio import SocketIO
 import sqlite3
 import os
 
+from .mqtt_client import MQTTClient
+
+
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
-    
+
     # Initialize SocketIO
     socketio = SocketIO(app, cors_allowed_origins="*")
-    
+
     # Initialize database
     init_db()
-    
-    return app, socketio
+
+    # MQTT client — initialized here so /api/broker/status can read it
+    # even if startup connection fails. command_handler wired in
+    # setup_routes once the DeviceController exists.
+    mqtt_client = MQTTClient()
+
+    return app, socketio, mqtt_client
 
 def init_db():
     """Initialize the SQLite database"""

@@ -3,8 +3,11 @@ from flask_socketio import emit
 from .models import Device, Room
 from .device_controller import DeviceController
 
-def setup_routes(app, socketio):
-    controller = DeviceController(socketio)
+def setup_routes(app, socketio, mqtt_client=None):
+    controller = DeviceController(socketio, mqtt_client=mqtt_client)
+    if mqtt_client is not None:
+        mqtt_client.command_handler = controller.handle_mqtt_command
+        mqtt_client.start()
     controller.start_sensor_simulation()
     
     @app.route('/')
@@ -71,6 +74,18 @@ def setup_routes(app, socketio):
             'monthly_estimate': round(usage * 24 * 30, 2),
             'cost_per_hour': round(usage * 0.12, 2)  # $0.12 per kWh
         })
+
+    @app.route('/api/broker/status')
+    def get_broker_status():
+        """Report MQTT broker mode honestly.
+
+        Returns mode="live" when paho is connected to a configured
+        broker; otherwise mode="sim". UI uses this to flip the broker
+        pip and update the system-reality footer copy.
+        """
+        if mqtt_client is None:
+            return jsonify({"mode": "sim", "connected": False, "enabled": False})
+        return jsonify(mqtt_client.status())
 
     @socketio.on('connect')
     def handle_connect():

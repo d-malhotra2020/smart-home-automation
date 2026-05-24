@@ -1,0 +1,21 @@
+# Local development: spin up just the Mosquitto broker.
+# Then run the Flask app outside docker with:
+#
+#     MQTT_HOST=localhost python main.py
+#
+# Railway runs the Flask app via Nixpacks and (separately) a
+# Mosquitto sidecar service — this compose file is for local dev
+# only.
+
+services:
+  mosquitto:
+    build: ./mosquitto
+    container_name: smart-home-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
